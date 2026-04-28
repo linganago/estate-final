@@ -3,23 +3,40 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Declare all VITE build-time variables
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_FIREBASE_AUTH_DOMAIN
+ARG VITE_FIREBASE_PROJECT_ID
+ARG VITE_FIREBASE_STORAGE_BUCKET
+ARG VITE_FIREBASE_MESSAGING_SENDER_ID
+ARG VITE_FIREBASE_APP_ID
+ARG VITE_MAPBOX_TOKEN
+ARG VITE_API_URL
+
+# Expose them to Vite during build
+ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
+ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
+ENV VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
+ENV VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
+ENV VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
+ENV VITE_MAPBOX_TOKEN=$VITE_MAPBOX_TOKEN
+ENV VITE_API_URL=$VITE_API_URL
+
 # Copy root package files
 COPY package*.json ./
 
 # Copy client package files
 COPY client/package*.json ./client/
 
-# Install ALL deps (including devDeps needed for the build)
+# Install dependencies
 RUN npm install --legacy-peer-deps
 RUN npm install --prefix client --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
-# Build the React app
-# Pass build-time env vars if needed:
-# ARG VITE_FIREBASE_API_KEY
-# ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+# Build the React app (VITE_ vars are now available)
 RUN npm run build --prefix client
 
 # ─── Stage 2: Production server ───────────────────────────────────────────────
@@ -36,12 +53,9 @@ RUN npm install --omit=dev --legacy-peer-deps
 # Copy API source
 COPY api/ ./api/
 
-# Copy built client from previous stage
+# Copy built client from builder stage
 COPY --from=builder /app/client/dist ./client/dist
 
 EXPOSE 3000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api/user/test || exit 1
 
 CMD ["node", "api/index.js"]
