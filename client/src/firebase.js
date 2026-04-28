@@ -9,9 +9,4 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Log in development to verify config is loaded
-if (import.meta.env.DEV) {
-  console.log('[Firebase] projectId:', firebaseConfig.projectId);
-}
-
 export const app = initializeApp(firebaseConfig);
