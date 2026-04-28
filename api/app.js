@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
@@ -71,10 +72,16 @@ app.use('/api/listing', listingRouter);
 app.use('/api/chat', chatRouter);
 
 // ── Serve React build in production ───────────────────────────────────────────
-if (process.env.NODE_ENV === 'production') {
-  const clientPath = path.join(__dirname, '../client/dist');
+// Always serve static files if client/dist exists (works in Docker too)
+const clientPath = path.join(__dirname, '../client/dist');
+console.log('[Server] NODE_ENV:', process.env.NODE_ENV);
+console.log('[Server] clientPath:', clientPath);
+console.log('[Server] dist exists:', fs.existsSync(clientPath));
+
+if (fs.existsSync(clientPath)) {
   app.use(express.static(clientPath));
-  app.get('*', (_req, res) => {
+  // Only catch non-API routes so API still works
+  app.get(/^\/(?!api).*/, (_req, res) => {
     res.sendFile(path.join(clientPath, 'index.html'));
   });
 }
