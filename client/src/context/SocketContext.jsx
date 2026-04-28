@@ -31,7 +31,7 @@ export function SocketProvider({ children }) {
     // Read JWT cookie to pass as auth fallback
     const token = getCookie('access_token');
 
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    const socket = io(import.meta.env.VITE_API_URL || window.location.origin, {
       withCredentials: true,
       auth: token ? { token } : {},   // ← fallback if cookie not forwarded
       transports: ['websocket', 'polling'],
