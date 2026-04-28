@@ -1,5 +1,5 @@
-import { GoogleAuthProvider, getAuth, signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { useState, useEffect } from 'react';
+import { GoogleAuthProvider, getAuth, signInWithPopup } from 'firebase/auth';
+import { useState } from 'react';
 import { app } from '../firebase';
 import { useDispatch } from 'react-redux';
 import { signInSuccess } from '../redux/user/userSlice';
@@ -11,38 +11,6 @@ export default function OAuth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Handle the result when Google redirects back to your app
-  useEffect(() => {
-    const auth = getAuth(app);
-    setLoading(true);
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (!result) {
-          setLoading(false);
-          return;
-        }
-        // User came back from Google — send to backend
-        const res = await fetch('/api/auth/google', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: result.user.displayName,
-            email: result.user.email,
-            photo: result.user.photoURL,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Google sign-in failed');
-        dispatch(signInSuccess(data));
-        navigate('/');
-      })
-      .catch((err) => {
-        console.error('Google redirect error:', err.message);
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
-
   const handleGoogleClick = async () => {
     if (loading) return;
     try {
@@ -51,11 +19,26 @@ export default function OAuth() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const auth = getAuth(app);
-      await signInWithRedirect(auth, provider);
-      // Page will redirect to Google — no code runs after this line
+      const result = await signInWithPopup(auth, provider);
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: result.user.displayName,
+          email: result.user.email,
+          photo: result.user.photoURL,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Google sign-in failed');
+      dispatch(signInSuccess(data));
+      navigate('/');
     } catch (err) {
-      console.error('Google sign-in error:', err.message);
-      setError(err.message);
+      // Ignore if user just closed the popup
+      if (err.code !== 'auth/popup-closed-by-user') {
+        setError(err.message);
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -68,7 +51,7 @@ export default function OAuth() {
         disabled={loading}
         className='bg-red-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80'
       >
-        {loading ? 'Redirecting to Google...' : 'Continue with Google'}
+        {loading ? 'Opening Google...' : 'Continue with Google'}
       </button>
       {error && <p className='text-red-500 text-sm'>{error}</p>}
     </div>
