@@ -27,6 +27,7 @@ app.set('trust proxy', 1);
 app.use(
   helmet({
     contentSecurityPolicy: false, // allow Vite/React inline styles in dev
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   })
 );
 
