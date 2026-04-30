@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { signInStart, signInSuccess, signInFailure } from '../redux/user/userSlice';
 import OAuth from '../components/OAuth';
+import AuthShell from '../components/AuthShell';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
@@ -41,40 +43,61 @@ export default function SignIn() {
   };
 
   return (
-    <div className='p-3 max-w-lg mx-auto'>
-      <h1 className='text-3xl text-center font-semibold my-7'>Sign In</h1>
+    <AuthShell title='Sign in'>
       <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
-        <input
-          type='email'
-          placeholder='Email'
-          className='border p-3 rounded-lg'
-          id='email'
-          required
-          onChange={handleChange}
-        />
-        <input
-          type='password'
-          placeholder='Password'
-          className='border p-3 rounded-lg'
-          id='password'
-          required
-          onChange={handleChange}
-        />
+        <div className='space-y-2'>
+          <label htmlFor='email' className='text-sm font-semibold text-slate-700'>
+            Email
+          </label>
+          <div className='relative'>
+            <FaEnvelope className='pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400' />
+            <input
+              type='email'
+              placeholder='you@example.com'
+              className='w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pl-11 text-slate-700 outline-none transition focus:border-emerald-600 focus:bg-white'
+              id='email'
+              required
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+        <div className='space-y-2'>
+          <label htmlFor='password' className='text-sm font-semibold text-slate-700'>
+            Password
+          </label>
+          <div className='relative'>
+            <FaLock className='pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400' />
+            <input
+              type='password'
+              placeholder='Password'
+              className='w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pl-11 text-slate-700 outline-none transition focus:border-emerald-600 focus:bg-white'
+              id='password'
+              required
+              onChange={handleChange}
+            />
+          </div>
+        </div>
         <button
           disabled={loading}
-          className='bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80'
+          className='rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70'
         >
           {loading ? 'Loading...' : 'Sign In'}
         </button>
         <OAuth />
       </form>
-      <div className='flex gap-2 mt-5'>
+      <div className='mt-6 flex flex-wrap items-center gap-2 text-sm text-slate-600'>
         <p>Don&apos;t have an account?</p>
         <Link to='/sign-up'>
-          <span className='text-blue-700'>Sign Up</span>
+          <span className='font-semibold text-emerald-700 hover:text-emerald-800'>
+            Sign up
+          </span>
         </Link>
       </div>
-      {error && <p className='text-red-500 mt-5'>{error}</p>}
-    </div>
+      {error && (
+        <p className='mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
+          {error}
+        </p>
+      )}
+    </AuthShell>
   );
 }

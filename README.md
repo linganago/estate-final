@@ -1,440 +1,331 @@
-# 🏡 MERN Estate — Full-Stack Real Estate Platform
+# NestQuest Real Estate Platform
 
-A production-ready real estate marketplace built with **MongoDB · Express · React · Node.js**.  
-Browse, list, and manage properties — with **real-time buyer ↔ owner chat** powered by Socket.IO.
+[![CI](https://github.com/linganago/estate-final/actions/workflows/ci.yml/badge.svg)](https://github.com/linganago/estate-final/actions/workflows/ci.yml)
 
----
+Production: https://estate-final-production.up.railway.app/
 
-## ✨ Feature Highlights
+NestQuest is a full-stack MERN real estate application for browsing properties, creating listings, managing user profiles, uploading listing media, and chatting in real time between buyers and listing owners.
 
-| Category | Features |
-|---|---|
-| **Auth** | JWT (httpOnly cookie), Google OAuth via Firebase, rate limiting, bcrypt |
-| **Listings** | Create, update, delete, image upload (Cloudinary), interactive Mapbox map |
-| **Search** | Full-text search, filters (type, offer, furnished, parking), sort & pagination |
-| **💬 Real-time Chat** | Socket.IO WebSocket chat between buyers and owners, typing indicators, unread badges, message history |
-| **Security** | Helmet, CORS, rate limiting, input validation (Zod) |
-| **DevOps** | Docker + Compose, GitHub Actions CI, Jest integration tests |
+## Highlights
 
----
+- Email/password authentication with JWT stored in an httpOnly cookie.
+- Google sign-in through Firebase Authentication.
+- Property listings with create, update, delete, search, filters, sorting, and pagination.
+- Cloudinary image upload for listing and profile media.
+- Mapbox listing maps and geocoding.
+- Real-time buyer-owner messaging with Socket.IO, unread badges, typing indicators, and REST fallback.
+- Production Express server that serves both the API and the built React client.
+- Security hardening with Helmet, CORS allowlisting, auth rate limiting, bcrypt password hashing, and server-side route validation.
+- Docker and Railway deployment support.
+- Jest and Supertest integration coverage for auth and listings.
 
-## 🗂 Project Structure
+## Tech Stack
 
-```
-mern-estate/
-├── api/
-│   ├── controllers/
-│   │   ├── auth.controller.js
-│   │   ├── listing.controller.js
-│   │   ├── user.controller.js
-│   │   └── chat.controller.js        ← NEW
-│   ├── models/
-│   │   ├── user.model.js
-│   │   ├── listing.model.js
-│   │   ├── conversation.model.js     ← NEW
-│   │   └── message.model.js          ← NEW
-│   ├── routes/
-│   │   ├── auth.router.js
-│   │   ├── listing.route.js
-│   │   ├── user.route.js
-│   │   ├── upload.js
-│   │   └── chat.route.js             ← NEW
-│   ├── services/
-│   ├── middleware/
-│   ├── utils/
-│   ├── socket.js                     ← NEW
-│   ├── app.js
-│   └── index.js
-├── client/
-│   └── src/
-│       ├── components/
-│       │   ├── ChatWindow.jsx        ← NEW
-│       │   └── Contact.jsx           ← UPDATED
-│       ├── context/
-│       │   └── SocketContext.jsx     ← NEW
-│       ├── pages/
-│       │   └── Inbox.jsx             ← NEW
-│       └── App.jsx                   ← UPDATED
-├── .env.example
-├── docker-compose.yml
-├── Dockerfile
-└── package.json
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, Vite, Redux Toolkit, Redux Persist, Tailwind CSS, React Router |
+| Backend | Node.js, Express, Socket.IO |
+| Database | MongoDB Atlas, Mongoose |
+| Auth | JWT cookies, bcryptjs, Firebase Google Auth |
+| Media | Cloudinary |
+| Maps | Mapbox GL |
+| Testing | Jest, Supertest, mongodb-memory-server |
+| Deployment | Railway, Docker |
+
+## Architecture
+
+```txt
+client/                      React application
+  src/components/            Shared UI, listing, chat, auth, image components
+  src/context/               Socket.IO client provider
+  src/pages/                 Route-level screens
+  src/redux/                 Persisted user session state
+
+api/                         Express application
+  controllers/               Request handlers
+  middleware/                Validation and auth middleware
+  models/                    Mongoose schemas
+  routes/                    API route modules
+  services/                  Listing business logic
+  utils/                     Cloudinary, errors, JWT helpers
+  app.js                     Express app, security, CORS, static client serving
+  index.js                   Mongo connection and HTTP/Socket server bootstrap
+  socket.js                  Socket.IO auth and chat events
 ```
 
----
+## Local Development
 
-## 🚀 Local Development — Step by Step
+### Requirements
 
-### Prerequisites
+- Node.js 20+
+- npm 9+
+- MongoDB Atlas database
+- Firebase project with Authentication enabled
+- Cloudinary account
+- Mapbox public token
 
-| Tool | Version |
-|---|---|
-| Node.js | v20+ |
-| npm | v9+ |
-| MongoDB Atlas | Free tier |
-| Cloudinary | Free tier |
-| Firebase project | For Google OAuth |
-| Mapbox account | For the map widget |
-
----
-
-### Step 1 — Clone & Install
+### Install
 
 ```bash
-git clone https://github.com/your-username/mern-estate.git
-cd mern-estate
-
-# Install backend dependencies
 npm install
-
-# Install frontend dependencies
 npm install --prefix client
 ```
 
----
+### Configure Environment
 
-### Step 2 — Configure Backend Environment
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and fill in every value:
+Create `.env` in the repository root:
 
 ```env
-MONGO=mongodb+srv://<user>:<pass>@cluster0.xxxxx.mongodb.net/mern-estate?retryWrites=true&w=majority
-JWT_SECRET=<run: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))">
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+MONGO=mongodb+srv://<user>:<password>@<cluster>/<database>?retryWrites=true&w=majority
+JWT_SECRET=<64-byte-random-secret>
+CLOUDINARY_CLOUD_NAME=<cloudinary-cloud-name>
+CLOUDINARY_API_KEY=<cloudinary-api-key>
+CLOUDINARY_API_SECRET=<cloudinary-api-secret>
 NODE_ENV=development
 PORT=3000
 CLIENT_URL=http://localhost:5173
 ```
 
-**Where to get each value:**
-- `MONGO` → [MongoDB Atlas](https://cloud.mongodb.com) → your cluster → Connect → Drivers
-- `CLOUDINARY_*` → [Cloudinary Console](https://cloudinary.com) → Dashboard
-
----
-
-### Step 3 — Configure Frontend Environment
-
-```bash
-cp client/.env.example client/.env
-```
+Create `client/.env`:
 
 ```env
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
-VITE_MAPBOX_TOKEN=pk.eyJ1...
+VITE_FIREBASE_API_KEY=<firebase-api-key>
+VITE_FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=<project-id>
+VITE_FIREBASE_STORAGE_BUCKET=<project-id>.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=<sender-id>
+VITE_FIREBASE_APP_ID=<app-id>
+VITE_FIREBASE_MEASUREMENT_ID=<measurement-id>
+VITE_CLOUDINARY_CLOUD_NAME=<cloudinary-cloud-name>
+VITE_CLOUDINARY_UPLOAD_PRESET=<unsigned-upload-preset>
+VITE_MAPBOX_TOKEN=<mapbox-public-token>
 VITE_API_URL=
 ```
 
-**Where to get each value:**
-- `VITE_FIREBASE_*` → [Firebase Console](https://console.firebase.google.com) → Project Settings → General → Your apps
-- `VITE_MAPBOX_TOKEN` → [Mapbox Account](https://account.mapbox.com) → Tokens (use your default public token)
-
-> Leave `VITE_API_URL` blank for local dev — Vite proxies `/api` and `/socket.io` to localhost:3000 automatically.
-
----
-
-### Step 4 — Run Development Servers
-
-Open **two** terminal tabs:
+Generate a JWT secret:
 
 ```bash
-# Tab 1 — Backend (nodemon auto-reload)
-npm run dev
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
 
-# Tab 2 — Frontend (Vite HMR)
+### Run
+
+Start the API:
+
+```bash
+npm run dev
+```
+
+Start the Vite client:
+
+```bash
 npm run dev --prefix client
 ```
 
+Local URLs:
+
 | Service | URL |
-|---|---|
-| Backend API | http://localhost:3000 |
-| Frontend | http://localhost:5173 |
+| --- | --- |
+| API | http://localhost:3000 |
+| Client | http://localhost:5173 |
 
----
+## Scripts
 
-### Step 5 — Run Tests
+| Command | Description |
+| --- | --- |
+| `npm start` | Start the production Express server |
+| `npm run dev` | Start the API with nodemon |
+| `npm run build` | Install client dependencies and build the React app |
+| `npm test` | Run Jest integration tests |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run build --prefix client` | Build only the React client |
+| `npm run lint --prefix client` | Run the frontend ESLint checks |
 
-```bash
-# Unit + integration tests
-npm test
-
-# With coverage report
-npm run test:coverage
-```
-
----
-
-## 💬 Real-Time Chat — Architecture
-
-```
-Buyer Browser                Socket.IO Server (port 3000)         Owner Browser
-      |                               |                                  |
-      |──join_conversation──────────>|                                  |
-      |──send_message───────────────>│──new_message────────────────────>|
-      |<─new_message─────────────────|                                  |
-      |                              |──conversation_updated───────────>|
-      |──typing─────────────────────>│──user_typing────────────────────>|
-      |──stop_typing────────────────>│──user_stopped_typing────────────>|
-```
-
-**Flow:**
-1. Buyer visits a listing page → clicks **"Chat with Owner"**
-2. `Contact.jsx` calls `POST /api/chat/conversations` → creates or retrieves the conversation document
-3. `ChatWindow.jsx` mounts → loads message history via `GET /api/chat/conversations/:id/messages`
-4. Socket.IO client joins the conversation room (`join_conversation`)
-5. Messages sent via `send_message` socket event are persisted to MongoDB and broadcast to the room
-6. Owner sees the message in their **Inbox** page (`/inbox`) in real time
-
----
-
-## 🐳 Docker — Local Container Run
-
-```bash
-cp .env.example .env          # fill in all values
-cp client/.env.example client/.env   # fill in all values
-
-docker compose up --build
-```
-
-App available at → http://localhost:3000
-
-To stop:
-```bash
-docker compose down
-```
-
----
-
-## ☁️ Deployment
-
-### Option A — Railway ⭐ (Recommended)
-
-Easiest option. Supports WebSockets natively.
-
-1. Push code to GitHub
-2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-3. Add all variables from `.env.example` in the Railway **Variables** tab
-4. Set `CLIENT_URL` to your Railway public URL (e.g. `https://mern-estate-production.up.railway.app`)
-5. Railway detects `npm run build` and `npm start` automatically — click **Deploy**
-
-> Build command: `npm run build`  
-> Start command: `npm start`
-
----
-
-### Option B — Fly.io
-
-```bash
-# 1. Install flyctl
-curl -L https://fly.io/install.sh | sh
-
-# 2. Login
-fly auth login
-
-# 3. Create app (do NOT deploy yet)
-fly launch --name mern-estate --region iad --no-deploy
-
-# 4. Set all secrets
-fly secrets set \
-  MONGO="your_mongo_uri" \
-  JWT_SECRET="your_64char_secret" \
-  CLOUDINARY_CLOUD_NAME="your_name" \
-  CLOUDINARY_API_KEY="your_key" \
-  CLOUDINARY_API_SECRET="your_secret" \
-  NODE_ENV="production" \
-  CLIENT_URL="https://mern-estate.fly.dev"
-
-# 5. Deploy
-fly deploy
-```
-
-Add this `fly.toml` to your project root:
-
-```toml
-app = "mern-estate"
-primary_region = "iad"
-
-[build]
-
-[http_service]
-  internal_port = 3000
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 0
-
-[[vm]]
-  memory = "512mb"
-  cpu_kind = "shared"
-  cpus = 1
-```
-
----
-
-### Option C — DigitalOcean App Platform
-
-1. Push to GitHub
-2. [DigitalOcean App Platform](https://cloud.digitalocean.com/apps) → **Create App** → GitHub
-3. Select your repo, set:
-   - **Build command:** `npm run build`
-   - **Run command:** `npm start`
-4. Add all environment variables
-5. Set `CLIENT_URL` to your `*.ondigitalocean.app` URL
-
-> WebSockets are supported on Basic plan and above.
-
----
-
-### Option D — VPS (Ubuntu 22.04) with PM2 + Nginx
-
-**On your server:**
-
-```bash
-# Install Node 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Clone & build
-git clone https://github.com/your-username/mern-estate.git /var/www/mern-estate
-cd /var/www/mern-estate
-cp .env.example .env        # fill in all values
-npm run build
-
-# Install PM2 globally
-sudo npm install -g pm2
-
-# Start the app
-pm2 start api/index.js --name mern-estate
-pm2 save
-pm2 startup              # follow the printed command to enable on boot
-```
-
-**Nginx config** (`/etc/nginx/sites-available/mern-estate`):
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-
-        # ⚠️  These two lines are REQUIRED for WebSocket / Socket.IO to work
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 86400;
-    }
-}
-```
-
-```bash
-# Enable site
-sudo ln -s /etc/nginx/sites-available/mern-estate /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-
-# Add free SSL (Let's Encrypt)
-sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d yourdomain.com
-```
-
----
-
-### Frontend Env Variables in Production
-
-When Express serves the built React app (the default), there is one process and one URL — leave `VITE_API_URL` blank.
-
-If you deploy the **frontend separately** (e.g., Vercel for client + Railway for API), set:
-
-```env
-VITE_API_URL=https://your-backend.railway.app
-```
-
-The `SocketContext.jsx` already reads `import.meta.env.VITE_API_URL || ''` so the socket will connect to the correct server.
-
----
-
-## 📡 API Reference
+## API Overview
 
 ### Auth
 
-| Method | Endpoint | Body | Description |
-|---|---|---|---|
-| POST | `/api/auth/signup` | `{ username, email, password }` | Register |
-| POST | `/api/auth/signin` | `{ email, password }` | Login (sets httpOnly cookie) |
-| POST | `/api/auth/google` | `{ name, email, photo }` | Google OAuth |
-| GET | `/api/auth/signout` | — | Logout (clears cookie) |
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/auth/signup` | Create an account |
+| `POST` | `/api/auth/signin` | Sign in and set the JWT cookie |
+| `POST` | `/api/auth/google` | Complete Firebase Google sign-in against the app database |
+| `GET` | `/api/auth/signout` | Clear the auth cookie |
+
+### Users
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/user/update/:id` | Update profile fields |
+| `DELETE` | `/api/user/delete/:id` | Delete account |
+| `GET` | `/api/user/listings/:id` | Get listings owned by a user |
+| `GET` | `/api/user/contact/:id` | Get listing owner contact details |
 
 ### Listings
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/api/listing/create` | ✅ | Create a listing |
-| PUT | `/api/listing/update/:id` | ✅ | Update listing (owner only) |
-| DELETE | `/api/listing/delete/:id` | ✅ | Delete listing (owner only) |
-| GET | `/api/listing/get/:id` | — | Get single listing |
-| GET | `/api/listing/get` | — | Search listings (query params) |
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/listing/create` | Create a listing |
+| `POST` | `/api/listing/update/:id` | Update a listing |
+| `DELETE` | `/api/listing/delete/:id` | Delete a listing |
+| `GET` | `/api/listing/get/:id` | Get one listing |
+| `GET` | `/api/listing/get` | Search and filter listings |
 
 ### Chat
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/api/chat/conversations` | ✅ | Get or create conversation |
-| GET | `/api/chat/conversations` | ✅ | List all my conversations |
-| GET | `/api/chat/conversations/:id/messages` | ✅ | Load message history |
-| POST | `/api/chat/conversations/:id/messages` | ✅ | Send message (REST fallback) |
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/chat/conversations` | Get or create a conversation |
+| `GET` | `/api/chat/conversations` | List conversations for the signed-in user |
+| `GET` | `/api/chat/conversations/:id/messages` | Load conversation messages |
+| `POST` | `/api/chat/conversations/:id/messages` | Send a message through REST fallback |
 
 ### Socket.IO Events
 
-**Client → Server**
+| Direction | Event | Payload |
+| --- | --- | --- |
+| Client to server | `join_conversation` | `{ conversationId }` |
+| Client to server | `leave_conversation` | `{ conversationId }` |
+| Client to server | `send_message` | `{ conversationId, text }` |
+| Client to server | `typing` | `{ conversationId }` |
+| Client to server | `stop_typing` | `{ conversationId }` |
+| Server to client | `joined` | `{ conversationId }` |
+| Server to client | `new_message` | message document |
+| Server to client | `conversation_updated` | conversation preview data |
+| Server to client | `user_typing` | `{ userId }` |
+| Server to client | `user_stopped_typing` | `{ userId }` |
+| Server to client | `error` | `{ message }` |
 
-| Event | Payload | Description |
-|---|---|---|
-| `join_conversation` | `{ conversationId }` | Join a chat room |
-| `leave_conversation` | `{ conversationId }` | Leave a chat room |
-| `send_message` | `{ conversationId, text }` | Send a message |
-| `typing` | `{ conversationId }` | Emit typing indicator |
-| `stop_typing` | `{ conversationId }` | Clear typing indicator |
+## Production Deployment
 
-**Server → Client**
+The deployed application is hosted on Railway:
 
-| Event | Payload | Description |
-|---|---|---|
-| `new_message` | Message object | New message broadcast to room |
-| `user_typing` | `{ userId }` | Other participant is typing |
-| `user_stopped_typing` | `{ userId }` | Other participant stopped |
-| `conversation_updated` | `{ conversationId, lastMessage, lastMessageAt }` | Inbox preview update |
-| `joined` | `{ conversationId }` | Room join confirmed |
-| `error` | `{ message }` | Server-side error |
+```txt
+https://estate-final-production.up.railway.app/
+```
 
----
+Railway runs one Node service. Express serves `/api/*`, Socket.IO, and the built React assets from `client/dist`.
 
-## 🔒 Security Notes
+### Railway Variables
 
-- JWT stored in **httpOnly cookie** — not readable by JavaScript
-- Auth endpoints rate-limited: **30 requests / 15 minutes per IP**
-- All chat REST routes require a valid JWT cookie
-- Socket.IO connection requires valid JWT cookie (verified server-side before any event is handled)
-- Conversation access is re-validated on every Socket.IO event — users cannot read or write to conversations they don't belong to
-- Helmet sets 11 security headers on every response
+Set these in Railway service variables:
 
----
+```env
+CLIENT_URL=https://estate-final-production.up.railway.app
+CLOUDINARY_API_KEY=<cloudinary-api-key>
+CLOUDINARY_API_SECRET=<cloudinary-api-secret>
+CLOUDINARY_CLOUD_NAME=<cloudinary-cloud-name>
+JWT_SECRET=<64-byte-random-secret>
+MONGO=<mongodb-atlas-connection-string>
+NODE_ENV=production
+PORT=3000
+VITE_API_URL=
+VITE_CLOUDINARY_CLOUD_NAME=<cloudinary-cloud-name>
+VITE_CLOUDINARY_UPLOAD_PRESET=<unsigned-upload-preset>
+VITE_FIREBASE_API_KEY=<firebase-api-key>
+VITE_FIREBASE_APP_ID=<firebase-app-id>
+VITE_FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=<sender-id>
+VITE_FIREBASE_PROJECT_ID=<project-id>
+VITE_FIREBASE_STORAGE_BUCKET=<project-id>.firebasestorage.app
+VITE_FIREBASE_MEASUREMENT_ID=<measurement-id>
+VITE_MAPBOX_TOKEN=<mapbox-public-token>
+```
 
-## 📄 License
+Important: Vite variables are baked into the frontend at build time. After changing any `VITE_*` value, redeploy the Railway service.
+
+### Firebase Google Auth Checklist
+
+Firebase Authentication authorized domains:
+
+```txt
+localhost
+127.0.0.1
+<project-id>.firebaseapp.com
+<project-id>.web.app
+estate-final-production.up.railway.app
+```
+
+Google OAuth redirect URI:
+
+```txt
+https://<project-id>.firebaseapp.com/__/auth/handler
+```
+
+For this deployment:
+
+```txt
+https://mern-estate-aff00.firebaseapp.com/__/auth/handler
+```
+
+### Build and Start
+
+Railway uses:
+
+```bash
+npm run build
+npm start
+```
+
+Docker uses the included multi-stage `Dockerfile`.
+
+## Security Notes
+
+- Do not commit `.env` or production secrets.
+- Rotate any secret that was pasted into chat, logs, screenshots, or issue trackers.
+- JWTs are stored in httpOnly cookies.
+- Passwords are hashed with bcrypt.
+- Auth endpoints are rate-limited.
+- CORS is restricted to configured origins and Railway's public service domain.
+- Helmet uses `same-origin-allow-popups` so Firebase popup auth can complete in production.
+- Socket.IO validates the JWT before allowing room joins or message events.
+
+## CI
+
+GitHub Actions runs the project CI workflow:
+
+```txt
+.github/workflows/ci.yml
+```
+
+Badge:
+
+```md
+[![CI](https://github.com/linganago/estate-final/actions/workflows/ci.yml/badge.svg)](https://github.com/linganago/estate-final/actions/workflows/ci.yml)
+```
+
+## Troubleshooting
+
+### Google sign-in shows `redirect_uri_mismatch`
+
+Add the Firebase auth handler URL to the Google OAuth client:
+
+```txt
+https://mern-estate-aff00.firebaseapp.com/__/auth/handler
+```
+
+### Google sign-in shows `auth/unauthorized-domain`
+
+Add the Railway domain to Firebase Authentication authorized domains:
+
+```txt
+estate-final-production.up.railway.app
+```
+
+### Sign-in works but private requests fail
+
+Check the deployed response includes:
+
+```txt
+Set-Cookie: access_token=...; HttpOnly; Secure; SameSite=None
+```
+
+Also confirm `NODE_ENV=production`, `CLIENT_URL` is the production URL, and the browser is using HTTPS.
+
+### Socket.IO does not connect
+
+Keep `VITE_API_URL` empty when the React app and API are served from the same Railway service. If deploying frontend and API separately, set `VITE_API_URL` to the backend URL.
+
+## License
 
 ISC
