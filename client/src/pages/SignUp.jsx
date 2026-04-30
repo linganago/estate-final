@@ -17,14 +17,20 @@ export default function SignUp() {
     try {
       setLoading(true);
       setError(null);
+      const payload = {
+        username: formData.username?.trim(),
+        email: formData.email?.trim().toLowerCase(),
+        password: formData.password,
+      };
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        credentials: 'include',
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) {
-        setError(data.message);
+        setError(data.message || 'Sign up failed');
         return;
       }
       navigate('/sign-in');

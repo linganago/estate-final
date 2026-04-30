@@ -3,14 +3,30 @@ import jwt from 'jsonwebtoken';
 import Conversation from './models/conversation.model.js';
 import Message from './models/message.model.js';
 
+const normalizeOrigin = (origin) => origin?.trim().replace(/\/$/, '');
+
+const getAllowedOrigins = () => {
+  const configuredOrigins = (process.env.CLIENT_URL || '')
+    .split(',')
+    .map(normalizeOrigin)
+    .filter(Boolean);
+
+  const railwayOrigin = process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : null;
+
+  return [
+    ...configuredOrigins,
+    normalizeOrigin(railwayOrigin),
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ].filter(Boolean);
+};
+
 export function initSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: [
-        process.env.CLIENT_URL || 'http://localhost:5173',
-        'http://localhost:3000',
-        'http://localhost:5173',
-      ],
+      origin: getAllowedOrigins(),
       credentials: true,
       methods: ['GET', 'POST'],
     },

@@ -9,12 +9,35 @@ const COOKIE_OPTIONS = {
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   maxAge: 24 * 60 * 60 * 1000, // 1 day
 };
+const CLEAR_COOKIE_OPTIONS = {
+  httpOnly: COOKIE_OPTIONS.httpOnly,
+  secure: COOKIE_OPTIONS.secure,
+  sameSite: COOKIE_OPTIONS.sameSite,
+};
+
+const normalizeEmail = (email) => email?.trim().toLowerCase();
+const normalizeUsername = (username) => username?.trim();
+
+const createAccessToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw errorHandler(500, 'Authentication is not configured on the server');
+  }
+
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    expiresIn: '1d',
+  });
+};
 
 export const signup = async (req, res, next) => {
-  const { username, email, password } = req.body;
+  const username = normalizeUsername(req.body.username);
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
 
   if (!username || !email || !password) {
     return next(errorHandler(400, 'All fields are required'));
+  }
+  if (password.length < 6) {
+    return next(errorHandler(400, 'Password must be at least 6 characters'));
   }
 
   try {
@@ -40,7 +63,8 @@ export const signup = async (req, res, next) => {
 };
 
 export const signin = async (req, res, next) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
 
   if (!email || !password) {
     return next(errorHandler(400, 'Email and password are required'));
@@ -53,9 +77,7 @@ export const signin = async (req, res, next) => {
     const validPassword = bcrypt.compareSync(password, validUser.password);
     if (!validPassword) return next(errorHandler(401, 'Wrong credentials!'));
 
-    const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET, {
-      expiresIn: '1d',
-    });
+    const token = createAccessToken(validUser._id);
 
     const { password: _pass, ...rest } = validUser._doc;
 
@@ -69,7 +91,9 @@ export const signin = async (req, res, next) => {
 };
 
 export const google = async (req, res, next) => {
-  const { name, email, photo } = req.body;
+  const name = req.body.name?.trim();
+  const email = normalizeEmail(req.body.email);
+  const { photo } = req.body;
 
   if (!name || !email) {
     return next(errorHandler(400, 'Google auth requires name and email'));
@@ -82,8 +106,11 @@ export const google = async (req, res, next) => {
       const generatePassword =
         Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
       const hashedPassword = bcrypt.hashSync(generatePassword, 12);
-      const baseUsername = name.split(' ').join('').toLowerCase();
-      const suffix = Math.random().toString(36).slice(-4);
+      const baseUsername =
+        name.replace(/[^a-z0-9]/gi, '').toLowerCase() ||
+        email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase() ||
+        'user';
+      const suffix = Math.random().toString(36).slice(-6);
       user = new User({
         username: baseUsername + suffix,
         email,
@@ -93,9 +120,7 @@ export const google = async (req, res, next) => {
       await user.save();
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '1d',
-    });
+    const token = createAccessToken(user._id);
     const { password: _pass, ...rest } = user._doc;
 
     res
@@ -108,6 +133,6 @@ export const google = async (req, res, next) => {
 };
 
 export const signOut = (_req, res) => {
-  res.clearCookie('access_token', COOKIE_OPTIONS);
+  res.clearCookie('access_token', CLEAR_COOKIE_OPTIONS);
   res.status(200).json({ success: true, message: 'Signed out successfully' });
 };

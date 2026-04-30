@@ -18,14 +18,19 @@ export default function SignIn() {
     e.preventDefault();
     try {
       dispatch(signInStart());
+      const payload = {
+        email: formData.email?.trim().toLowerCase(),
+        password: formData.password,
+      };
       const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        credentials: 'include',
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) {
-        dispatch(signInFailure(data.message));
+        dispatch(signInFailure(data.message || 'Sign in failed'));
         return;
       }
       dispatch(signInSuccess(data));

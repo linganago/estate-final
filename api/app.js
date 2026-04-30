@@ -21,6 +21,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(
@@ -29,16 +30,30 @@ app.use(
   })
 );
 
-const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:5173',
-];
+const normalizeOrigin = (origin) => origin?.trim().replace(/\/$/, '');
+
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
+const railwayOrigin = process.env.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  : null;
+
+const allowedOrigins = new Set(
+  [
+    ...configuredOrigins,
+    normalizeOrigin(railwayOrigin),
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ].filter(Boolean)
+);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.has(normalizeOrigin(origin))) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
